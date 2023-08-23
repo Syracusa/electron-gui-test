@@ -1,89 +1,81 @@
-
-function setDefaultStyle(element: HTMLElement): void {
-    element.style.padding = '1px';
-    element.style.margin = '0px';
-    element.style.fontSize = '9px';
-    element.style.border = '2px solid grey';
-    element.style.boxSizing = 'border-box';
-}
-
-function createContainer(): HTMLDivElement {
-    const container = document.createElement('div');
-    setDefaultStyle(container);
-    container.style.position = 'absolute';
-    container.style.top = '100px';
-    container.style.left = '10px';
-    container.style.backgroundColor = 'white';
-    container.style.color = 'black';
-    return container;
-}
-
-function createSubContainer(): HTMLDivElement {
-    const container = document.createElement('div');
-    setDefaultStyle(container);
-    container.style.backgroundColor = 'white';
-    container.style.color = 'black';
-    return container;
-}
-
-function createButton(text: string): HTMLButtonElement {
-    const button = document.createElement('button');
-    setDefaultStyle(button);
-    button.style.display = 'block';
-    button.style.height = '16px';
-    button.style.color = 'white';
-    button.style.backgroundColor = "black"
-    button.innerHTML = text;
-    return button;
-}
-
-function createFlexContainer(): HTMLDivElement {
-    const container = document.createElement('div');
-    setDefaultStyle(container);
-    container.style.display = 'flex';
-    container.style.backgroundColor = 'white';
-    container.style.color = 'black';
-    return container;
-}
-
-function createSelect(options: HTMLOptionElement[]): HTMLSelectElement {
-    const select = document.createElement('select');
-    setDefaultStyle(select);
-    select.style.display = 'inline-block';
-    select.style.height = '20px';
-    select.style.color = 'black';
-
-    options.forEach(option => {
-        select.appendChild(option);
-    });
-    return select;
-}
-
-function createLabel(text: string): HTMLLabelElement {
-    const label = document.createElement('label');
-    setDefaultStyle(label);
-    label.style.display = 'inline-block';
-    label.style.height = '20px';
-    label.style.color = 'black';
-    label.innerHTML = text;
-    return label;
-}
+import {
+    createButton, createContainer,
+    createFlexContainer, createLabel,
+    createSelect, createSubContainer
+} from "./elem-util";
 
 export class TrafficController {
+    createCallback = (trafficConfId: number) => { console.log('No create callback', trafficConfId); };
+    startCallback = (trafficConfId: number, sender: number, receiver: number, packetSize: number, intervalMs: number) => {
+        console.log('No start callback', trafficConfId, sender, receiver, packetSize, intervalMs);
+    };
+    stopCallback = (trafficConfId: number) => { console.log('No stop callback', trafficConfId); };
+    updateCallback = (trafficConfId: number, sender: number, receiver: number, packetSize: number, intervalMs: number) => {
+        console.log('No update callback', trafficConfId, sender, receiver, packetSize, intervalMs);
+    };
+    deleteCallback = (trafficConfId: number) => { console.log('No delete callback', trafficConfId); };
+
+    private trafficConfIdCounter = 0;
+
+    static readonly SUB_CONTROLLER_ID_BASE = 'traffic_controller_sub_controller_';
+    static readonly SENDER_ID_BASE = 'traffic_controller_sender_';
+    static readonly RECEIVER_ID_BASE = 'traffic_controller_receiver_';
+    static readonly PACKET_SIZE_ID_BASE = 'traffic_controller_packetSize_';
+    static readonly INTERVAL_ID_BASE = 'traffic_controller_interval_';
 
     constructor() {
         const container = createContainer();
-        container.appendChild(this.createOneTrafficController());
-        container.appendChild(this.createOneTrafficController());
+        container.style.display = 'flex';
+        container.style.border = 'none';
+        container.style.transition = "left 1.5s";
+
+        const controllerContainer = this.createControllerBody();
+        container.appendChild(controllerContainer);
+        document.body.appendChild(container);
+
+        const sideViewToggle = createButton('Traffic Control');
+        sideViewToggle.style.writingMode = 'vertical-rl';
+        sideViewToggle.style.backgroundColor = 'lightgrey';
+        sideViewToggle.style.color = 'black';
+        sideViewToggle.style.fontSize = '15px';
+        sideViewToggle.style.fontWeight = 'bold';
+        sideViewToggle.style.width = '20px';
+        sideViewToggle.style.height = '150px';
+        sideViewToggle.onclick = () => {
+            container.style.left = container.style.left === '0px' ? '-237px' : '0px';
+        }
+
+        container.appendChild(sideViewToggle);
+
+
+    }
+
+    private createControllerBody(): HTMLDivElement {
+        const controllerContainer = createSubContainer();
+        controllerContainer.style.minWidth = '236px';
+        
+        const subControllerContainer = createSubContainer();
+        subControllerContainer.appendChild(this.createSubTrafficController());
+        subControllerContainer.appendChild(this.createSubTrafficController());
 
         const newTrafficButton = createButton(" + New Traffic ");
         newTrafficButton.style.width = "100%";
-        container.appendChild(newTrafficButton);
-        document.body.appendChild(container);
+        newTrafficButton.onclick = () => {
+            subControllerContainer.appendChild(this.createSubTrafficController());
+        }
+
+        controllerContainer.appendChild(subControllerContainer);
+        controllerContainer.appendChild(newTrafficButton);
+
+        return controllerContainer;
     }
 
-    private createOneTrafficController(): HTMLDivElement {
+    private createSubTrafficController(): HTMLDivElement {
+        this.trafficConfIdCounter++;
+        this.createCallback(this.trafficConfIdCounter);
+
         const container = createSubContainer();
+        container.id = TrafficController.SUB_CONTROLLER_ID_BASE + this.trafficConfIdCounter.toString();
         container.style.border = '2px solid GhostWhite';
         container.style.borderBottom = 'none';
 
@@ -93,9 +85,34 @@ export class TrafficController {
         const trafficTraitContainer = this.createTrafficTraitSelectContainer();
         container.appendChild(trafficTraitContainer);
 
-        const buttonContainer = this.createUDButtonDiv();
+        const buttonContainer = this.createOneControllerButtonDiv();
         container.appendChild(buttonContainer);
         return container;
+    }
+
+    private getSelectedValueById(id: string): number {
+        const select = document.getElementById(id) as HTMLSelectElement;
+        return parseInt(select.options[select.selectedIndex].value);
+    }
+
+    private getSelectedSender(trafficConfId: number): number {
+        const selectId = TrafficController.SENDER_ID_BASE + trafficConfId.toString();
+        return this.getSelectedValueById(selectId);
+    }
+
+    private getSelectedReceiver(trafficConfId: number): number {
+        const selectId = TrafficController.RECEIVER_ID_BASE + trafficConfId.toString();
+        return this.getSelectedValueById(selectId);
+    }
+
+    private getSelectedPacketSize(trafficConfId: number): number {
+        const selectId = TrafficController.PACKET_SIZE_ID_BASE + trafficConfId.toString();
+        return this.getSelectedValueById(selectId);
+    }
+
+    private getSelectedInterval(trafficConfId: number): number {
+        const selectId = TrafficController.INTERVAL_ID_BASE + trafficConfId.toString();
+        return this.getSelectedValueById(selectId);
     }
 
     private createTrafficTraitSelectContainer(): HTMLDivElement {
@@ -109,7 +126,9 @@ export class TrafficController {
             option.innerHTML = i.toString();
             packetSizeOptions.push(option);
         }
-        const packetSizeSelector = this.createSelector('Packet Size', packetSizeOptions, 9);
+        const packetSizeSelector = this.createSelector(
+            'Packet Size', packetSizeOptions,
+            TrafficController.PACKET_SIZE_ID_BASE, 9);
         packetSizeSelector.style.width = '50%';
         container.appendChild(packetSizeSelector);
 
@@ -133,7 +152,9 @@ export class TrafficController {
             intervalOptions.push(option);
         }
 
-        const intervalSelector = this.createSelector('Interval(ms)', intervalOptions, 23);
+        const intervalSelector = this.createSelector(
+            'Interval(ms)', intervalOptions,
+            TrafficController.INTERVAL_ID_BASE, 23);
         intervalSelector.style.width = '50%';
         container.appendChild(intervalSelector);
 
@@ -151,7 +172,9 @@ export class TrafficController {
             option.innerHTML = i.toString();
             senderOptions.push(option);
         }
-        const senderSelector = this.createSelector('Sender', senderOptions);
+        const senderSelector = this.createSelector(
+            'Sender', senderOptions,
+            TrafficController.SENDER_ID_BASE, 0);
         senderSelector.style.width = '50%';
         container.appendChild(senderSelector);
 
@@ -162,41 +185,67 @@ export class TrafficController {
             option.innerHTML = i.toString();
             receiverOptions.push(option);
         }
-        const receiverSelector = this.createSelector('Receiver', receiverOptions, 1);
+        const receiverSelector = this.createSelector(
+            'Receiver', receiverOptions,
+            TrafficController.RECEIVER_ID_BASE, 1);
         receiverSelector.style.width = '50%';
         container.appendChild(receiverSelector);
 
         return container;
     }
 
-    private createUDButtonDiv(): HTMLDivElement {
+    private createOneControllerButtonDiv(): HTMLDivElement {
         const buttonContainer = createFlexContainer();
+        const trafficConfId = this.trafficConfIdCounter;
 
-        const startButton = createButton('Start');
-        startButton.style.width = '33.4%';
-        startButton.onclick = () => {
-            if (startButton.innerHTML === 'Start') {
-                startButton.innerHTML = 'Stop';
-                startButton.style.backgroundColor = 'red';
+        const startStopButton = createButton('Start');
+        startStopButton.style.width = '33.4%';
+        startStopButton.onclick = () => {
+            if (startStopButton.innerHTML === 'Start') {
+                this.startCallback(this.trafficConfIdCounter,
+                    this.getSelectedSender(trafficConfId),
+                    this.getSelectedReceiver(trafficConfId),
+                    this.getSelectedPacketSize(trafficConfId),
+                    this.getSelectedInterval(trafficConfId)
+                );
+
+                startStopButton.innerHTML = 'Stop';
+                startStopButton.style.backgroundColor = 'red';
             } else {
-                startButton.innerHTML = 'Start';
-                startButton.style.backgroundColor = 'black';
+                this.stopCallback(this.trafficConfIdCounter);
+
+                startStopButton.innerHTML = 'Start';
+                startStopButton.style.backgroundColor = 'black';
             }
         }
 
         const updateButton = createButton('Update');
         updateButton.style.width = '33.3%';
+        updateButton.onclick = () => {
+            this.updateCallback(this.trafficConfIdCounter,
+                this.getSelectedSender(trafficConfId),
+                this.getSelectedReceiver(trafficConfId),
+                this.getSelectedPacketSize(trafficConfId),
+                this.getSelectedInterval(trafficConfId)
+            );
+        }
+
         const deleteButton = createButton('Delete');
         deleteButton.style.width = '33.3%';
+        deleteButton.onclick = () => {
+            this.deleteCallback(this.trafficConfIdCounter);
+            const container = document.getElementById(TrafficController.SUB_CONTROLLER_ID_BASE + trafficConfId.toString());
+            container.parentNode.removeChild(container);
+        }
 
-        buttonContainer.appendChild(startButton);
+        buttonContainer.appendChild(startStopButton);
         buttonContainer.appendChild(updateButton);
         buttonContainer.appendChild(deleteButton);
 
         return buttonContainer;
     }
 
-    private createSelector(text: string, options: HTMLOptionElement[], defaultIdx = 0): HTMLDivElement {
+    private createSelector(text: string, options: HTMLOptionElement[], selectIdBase: string, defaultIdx = 0): HTMLDivElement {
         const container = createFlexContainer();
         container.style.width = '100%';
         const label = createLabel(text);
@@ -210,8 +259,9 @@ export class TrafficController {
         select.style.backgroundColor = 'grey';
         select.selectedIndex = defaultIdx;
 
+        select.id = selectIdBase + this.trafficConfIdCounter.toString();
+
         container.appendChild(select);
         return container;
     }
-
 }
