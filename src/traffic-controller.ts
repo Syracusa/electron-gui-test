@@ -5,6 +5,14 @@ import {
 } from "./elem-util";
 
 export class TrafficController {
+    /* Singleton */
+    private static instance: TrafficController;
+    static getInstance() {
+        if (!TrafficController.instance)
+            TrafficController.instance = new TrafficController();
+        return TrafficController.instance;
+    }
+
     createCallback = (trafficConfId: number) => { console.log('No create callback', trafficConfId); };
     startCallback = (trafficConfId: number, sender: number, receiver: number, packetSize: number, intervalMs: number) => {
         console.log('No start callback', trafficConfId, sender, receiver, packetSize, intervalMs);
@@ -28,6 +36,7 @@ export class TrafficController {
         container.style.display = 'flex';
         container.style.border = 'none';
         container.style.transition = "left 1.5s";
+        container.style.backgroundColor = 'transparent';
 
         const controllerContainer = this.createControllerBody();
         container.appendChild(controllerContainer);
