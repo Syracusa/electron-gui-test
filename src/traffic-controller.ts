@@ -35,19 +35,18 @@ export class TrafficController {
 
         const sideViewToggle = createButton('Traffic Control');
         sideViewToggle.style.writingMode = 'vertical-rl';
-        sideViewToggle.style.backgroundColor = 'lightgrey';
-        sideViewToggle.style.color = 'black';
+        sideViewToggle.style.backgroundColor = 'grey';
+        sideViewToggle.style.color = 'white';
         sideViewToggle.style.fontSize = '15px';
         sideViewToggle.style.fontWeight = 'bold';
         sideViewToggle.style.width = '20px';
         sideViewToggle.style.height = '150px';
+        sideViewToggle.style.border = '1px solid DarkGrey';
         sideViewToggle.onclick = () => {
             container.style.left = container.style.left === '0px' ? '-237px' : '0px';
         }
 
         container.appendChild(sideViewToggle);
-
-
     }
 
     private createControllerBody(): HTMLDivElement {
